@@ -86,6 +86,7 @@ def get_events_impl(
     num_events: int | None = None,
     start_date: str | None = None,
     end_date: str | None = None,
+    updated_since: datetime.datetime | None = None,
 ) -> list[CalendarEvent]:
   """Fetches calendar events."""
   if not (num_events or start_date or end_date):
@@ -107,12 +108,17 @@ def get_events_impl(
   }
 
   if end_date:
-      end_dt = datetime.datetime.strptime(end_date, '%Y-%m-%d').replace(
-          hour=23, minute=59, second=59, microsecond=999999
-      )
-      list_params['timeMax'] = end_dt.replace(
-          tzinfo=datetime.timezone.utc
-      ).isoformat()
+    end_dt = datetime.datetime.strptime(end_date, '%Y-%m-%d').replace(
+        hour=23, minute=59, second=59, microsecond=999999
+    )
+    list_params['timeMax'] = end_dt.replace(
+        tzinfo=datetime.timezone.utc
+    ).isoformat()
+
+  if updated_since:
+    list_params['updatedMin'] = updated_since.replace(
+        tzinfo=datetime.timezone.utc
+    ).isoformat()
 
   events_result = service.events().list(**list_params).execute()
   events = events_result.get('items', [])

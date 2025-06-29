@@ -61,6 +61,7 @@ def get_emails_impl(
     start_date: str | None = None,
     end_date: str | None = None,
     unread_only: bool = False,
+    received_since: datetime.datetime | None = None,
 ) -> list[EmailMessage]:
     """Gets emails from the user's inbox."""
     if not (num_emails or start_date or end_date):
@@ -73,6 +74,9 @@ def get_emails_impl(
         query += f" after:{start_date.replace('-', '/')}"
       if end_date:
         query += f" before:{end_date.replace('-', '/')}"
+      if received_since:
+        timestamp = int(received_since.timestamp())
+        query += f" after:{timestamp}"
 
       emails = []
       page_token = None
@@ -80,16 +84,13 @@ def get_emails_impl(
       if unread_only:
         label_ids.append('UNREAD')
       while True:
-        results = (
-            service.users()
-            .messages()
-            .list(
-                userId="me",
-                q=query,
-                labelIds=label_ids,
-                pageToken=page_token)
-            .execute()
-        )
+        list_params = {
+            'userId': 'me',
+            'q': query,
+            'labelIds': label_ids,
+            'pageToken': page_token,
+        }
+        results = service.users().messages().list(**list_params).execute()
         messages_info = results.get("messages", [])
 
         if not messages_info:
