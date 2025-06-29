@@ -1,5 +1,6 @@
 import dataclasses
 import datetime
+import os
 from typing import Any, Callable
 from zoneinfo import ZoneInfo
 
@@ -117,10 +118,25 @@ def get_events_impl(
   events = events_result.get('items', [])
 
   if not events:
-      print('No upcoming events found.')
-      return []
+    print('No upcoming events found.')
+    return []
 
-  return [CalendarEvent.from_json(e) for e in events]
+  parsed_events = []
+  user_email = os.environ.get('EMAIL')
+  for e in events:
+    event = CalendarEvent.from_json(e)
+    declined = False
+    for a in event.attendees:
+      if (
+          user_email and
+          a.email.startswith(user_email) and
+          a.response_status == 'declined'
+      ):
+        declined = True
+        break
+    if not declined:
+      parsed_events.append(event)
+  return parsed_events
 
 
 def make_get_events_tool(credentials: Credentials) -> Callable:
