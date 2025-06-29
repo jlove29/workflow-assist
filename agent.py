@@ -14,7 +14,8 @@ def run(user_input: str):
   credentials = auth_lib.get_credentials()
   config = types.GenerateContentConfig(
       tools=[
-          calendar_tool.make_get_events_tool(credentials)
+          calendar_tool.make_get_events_tool(credentials),
+          gmail_tool.make_get_emails_tool(credentials),
       ]
   )
 
@@ -28,5 +29,5 @@ def run(user_input: str):
 
 
 if __name__ == '__main__':
-  user_input = input()
+  user_input = input('> ')
   run(user_input)

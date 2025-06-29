@@ -1,7 +1,7 @@
 import base64
 import dataclasses
 import datetime
-from typing import Any
+from typing import Any, Callable
 
 import auth as auth_lib
 
@@ -54,26 +54,15 @@ def get_gmail_service(credentials: Credentials) -> GmailService | None:
     return None
 
 
-def get_emails(
+def get_emails_impl(
     service: "GmailService",
+    *,
     num_emails: int | None = None,
     start_date: str | None = None,
     end_date: str | None = None,
     unread_only: bool = False,
 ) -> list[EmailMessage]:
-    """
-    Gets emails from the user's inbox.
-
-    Args:
-      service: An authenticated Gmail API service object.
-      num_emails: A limit on the total number of emails to fetch.
-      start_date: The start date to filter emails from (format YYYY-MM-DD).
-      end_date: The end date to filter emails to (format YYYY-MM-DD).
-      unread_only: Whether to filter to unread emails.
-
-    Returns:
-      A list of email messages.
-    """
+    """Gets emails from the user's inbox."""
     if not (num_emails or start_date or end_date):
       # If nothing is provided, fetch a reasonable number of emails.
       num_emails = 100
@@ -130,9 +119,42 @@ def get_emails(
       return []
 
 
+def make_get_emails_tool(credentials: Credentials) -> Callable:
+  service = get_gmail_service(credentials)
+
+  def get_emails(
+      num_emails: int | None = None,
+      start_date: str | None = None,
+      end_date: str | None = None,
+      unread_only: bool = False,
+  ):
+    """Gets emails from the user's inbox.
+
+    Args:
+      service: An authenticated Gmail API service object.
+      num_emails: A limit on the total number of emails to fetch.
+      start_date: The start date to filter emails from (format YYYY-MM-DD).
+      end_date: The end date to filter emails to (format YYYY-MM-DD).
+      unread_only: Whether to filter to unread emails.
+
+    Returns:
+      A list of email messages.
+    """
+    emails = get_emails_impl(
+        service,
+        num_emails=num_emails,
+        start_date=start_date,
+        end_date=end_date,
+        unread_only=unread_only,
+    )
+    return emails
+
+  return get_emails
+
+
 
 if __name__ == '__main__':
   service = get_gmail_service(auth_lib.get_credentials())
-  emails = get_emails(service, num_emails=10)
+  emails = get_emails_impl(service, num_emails=10)
   for e in emails:
     print(e.subject)
