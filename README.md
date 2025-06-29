@@ -1,0 +1,11 @@
+# ABP Agent
+
+## Setup instructions
+
+```sh
+python3 -m venv env
+source env/bin/activate
+pip3 install --upgrade google-api-python-client google-auth-httplib2 google-auth-oauthlib google-genai
+```
+
+Ensure you have your `GEMINI_API_KEY` environment variable set.
