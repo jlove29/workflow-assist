@@ -1,6 +1,7 @@
 import base64
 import dataclasses
 import datetime
+import sys
 from typing import Any, Callable
 
 import auth as auth_lib
@@ -14,6 +15,8 @@ GmailService = Any
 
 @dataclasses.dataclass
 class EmailMessage:
+  id: str
+  thread_id: str
   subject: str
   sender: str
   snippet: str
@@ -42,7 +45,27 @@ class EmailMessage:
           break
     elif "data" in payload.get("body", {}):
       body = base64.urlsafe_b64decode(payload["body"]["data"]).decode("utf-8")
-    return EmailMessage(subject, sender, snippet, body, date_obj)
+    return EmailMessage(
+        id=data["id"],
+        thread_id=data.get("threadId", ""),
+        subject=subject,
+        sender=sender,
+        snippet=snippet,
+        body=body,
+        date=date_obj,
+    )
+
+  def to_string(self, short: bool = False) -> str:
+    as_str = (
+        'Email message:\n'
+        f'Subject: {self.subject}\n'
+        f'Sender: {self.sender}\n'
+    )
+    if short:
+      as_str += self.snippet
+    else:
+      as_str += self.body
+    return as_str
 
 
 def get_gmail_service(credentials: Credentials) -> GmailService | None:
@@ -55,7 +78,7 @@ def get_gmail_service(credentials: Credentials) -> GmailService | None:
 
 
 def get_emails_impl(
-    service: "GmailService",
+    service: GmailService,
     *,
     num_emails: int | None = None,
     start_date: str | None = None,
@@ -153,9 +176,68 @@ def make_get_emails_tool(credentials: Credentials) -> Callable:
   return get_emails
 
 
+def mark_as_read_impl(
+    service: GmailService,
+    message: EmailMessage,
+    star: bool = False,
+) -> EmailMessage | None:
+  try:
+    body = {'removeLabelIds': ['UNREAD']}
+    if star:
+      body['addLabelIds'] = ['STARRED']
+    service.users().messages().modify(
+        userId='me',
+        id=message.id,
+        body=body,
+    ).execute()
+    print(f'Message with ID: {message.id} marked as read.')
+    return message
+  except Exception as e:
+    print(f'An error occurred: {e}')
+    return None
+
+
+def make_ignore_tool(
+    credentials: Credentials,
+    message: EmailMessage,
+    # Horrible hack to make automatic FC work.
+    edited_dict: dict[str, Any],
+) -> Callable:
+  service = get_gmail_service(credentials)
+
+  def ignore() -> None:
+    """Ignores the current message and marks as read."""
+    returned_message = mark_as_read_impl(service, message)
+    if returned_message is not None:
+      edited_dict['ignore'] = returned_message
+
+  return ignore
+
+
+def make_star_tool(
+    credentials: Credentials,
+    message: EmailMessage,
+    edited_dict: dict[str, Any],
+) -> Callable:
+  service = get_gmail_service(credentials)
+
+  def star() -> None:
+    """Stars the current message for the user to look at later."""
+    returned_message = mark_as_read_impl(service, message, star=True)
+    if returned_message is not None:
+      edited_dict['star'] = returned_message
+
+  return star
+
+
 
 if __name__ == '__main__':
   service = get_gmail_service(auth_lib.get_credentials())
-  emails = get_emails_impl(service, num_emails=10)
-  for e in emails:
-    print(e.subject)
+
+  if len(sys.argv) > 1:
+    mark_as_read_impl(service, sys.argv[1])
+
+  else:
+    emails = get_emails_impl(service, num_emails=10)
+    for e in emails:
+      print(e.subject)

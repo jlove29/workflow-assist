@@ -5,6 +5,7 @@ import time
 
 import auth as auth_lib
 import calendar_tool
+import gmail_agent
 import gmail_tool
 import prompts
 
@@ -49,9 +50,13 @@ class Agent:
       latest_emails = gmail_tool.get_emails_impl(
           gmail_tool.get_gmail_service(creds),
           received_since=self._last_ckpt,
+          unread_only=True,
       )
       print(latest_emails)
       self._last_ckpt = datetime.datetime.now(datetime.UTC)
+
+      if latest_emails:
+        gmail_agent.triage(latest_emails)
 
 
 if __name__ == '__main__':
