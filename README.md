@@ -1,4 +1,4 @@
-# ABP Agent
+# Workflow assistant
 
 ## Setup instructions
 
