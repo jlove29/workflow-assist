@@ -63,7 +63,9 @@ def make_respond_tool(
     response = client.models.generate_content(
         model='gemini-2.5-flash',
         contents=(
-            f'Draft a response to this email:\n\n{message.to_string()}'
+            f'Draft a response to this email:\n\n{message.to_string()}\n\n'
+            'ONLY include the resulting email in your response. Do not give '
+            'multiple options or explain your response.'
         )
     )
     holding_dict[RESPOND] = response.text

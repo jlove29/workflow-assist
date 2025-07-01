@@ -12,7 +12,7 @@ import prompts
 from google import genai
 from google.genai import types
 
-INTERVAL = 60 * 5  # 5 minutes   #  15  # seconds
+INTERVAL = 60  # 1 minute
 
 
 class Agent:
