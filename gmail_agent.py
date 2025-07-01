@@ -48,6 +48,7 @@ def make_ignore_tool(
 def build_prompt(email: gmail_tool.EmailMessage) -> str:
   prompt = prompts.PROMPT
   prompt += TASK_PROMPT
+  prompt += prompts.user_prefs(prompts.TRIAGE_MD)
   prompt += email.to_string(short=True)
   return prompt
 
