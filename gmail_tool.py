@@ -1,6 +1,7 @@
 import base64
 import dataclasses
 import datetime
+from email.message import EmailMessage as EmailMessageBuiltin
 import sys
 from typing import Any, Callable
 
@@ -230,12 +231,39 @@ def make_star_tool(
   return star
 
 
+def create_draft(
+    credentials: Credentials,
+    *,
+    message: str,
+    reply_to: str,
+) -> None:
+  # TODO: get other recipients and send it to them.
+  service = get_gmail_service(credentials)
+  obj = EmailMessageBuiltin()
+  obj.set_content(message)
+  # message['To'] = 'Ignore'
+  # message['From'] = 'Ignore'
+  # message['Subject'] = 'Automated draft'
+  encoded = base64.urlsafe_b64encode(obj.as_bytes()).decode()
+  body = { 'message': { 'threadId': reply_to, 'raw': encoded} }
+  service.users().drafts().create(userId="me", body=body).execute()
+
 
 if __name__ == '__main__':
-  service = get_gmail_service(auth_lib.get_credentials())
+  creds = auth_lib.get_credentials()
+  service = get_gmail_service(creds)
 
   if len(sys.argv) > 1:
-    mark_as_read_impl(service, sys.argv[1])
+
+    if sys.argv[1] == 'draft':
+      create_draft(
+          creds,
+          message='This is a draft',
+          reply_to='197c31c0f7f13a53',
+      )
+
+    else:
+      mark_as_read_impl(service, sys.argv[1])
 
   else:
     emails = get_emails_impl(service, num_emails=10)

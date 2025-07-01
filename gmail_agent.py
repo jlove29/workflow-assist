@@ -43,6 +43,7 @@ def make_respond_tool(
 ) -> Callable:
 
   def respond() -> None:
+    """Marks an email as needing a response."""
     response = client.models.generate_content(
         model='gemini-2.5-flash',
         contents=(
@@ -85,7 +86,13 @@ def triage(emails: list[gmail_tool.EmailMessage]):
     elif 'star' in holding_dict:
       print(f'Starred email {email.subject}.')
     elif 'respond' in holding_dict:
-      print(f"Responded to email:\n{holding_dict['respond']}")
+      response = holding_dict['respond']
+      print(f"Drafted response to email:\n{response}")
+      gmail_tool.create_draft(
+          credentials=credentials,
+          message=response,
+          reply_to=email.id,
+      )
     else:
       print(f'Failed to triage email: {email.subject}')
 
