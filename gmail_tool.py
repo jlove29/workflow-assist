@@ -3,13 +3,13 @@ import dataclasses
 import datetime
 from email.message import EmailMessage as EmailMessageBuiltin
 import sys
-from typing import Any, Callable
+from typing import Any, Callable, no_type_check
 
 import auth as auth_lib
 
 from google.oauth2.credentials import Credentials
-from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
+from googleapiclient.discovery import build  # type: ignore
+from googleapiclient.errors import HttpError  # type: ignore
 
 GmailService = Any
 
@@ -17,14 +17,15 @@ GmailService = Any
 @dataclasses.dataclass
 class EmailMessage:
   id: str
-  thread_id: str
-  subject: str
-  sender: str
-  snippet: str
-  body: str
-  date: str
+  thread_id: str = ''
+  subject: str = ''
+  sender: str = ''
+  snippet: str = ''
+  body: str = ''
+  date: str = ''
 
   @classmethod
+  @no_type_check
   def from_json(cls, data: dict) -> 'EmailMessage':
     headers = data["payload"]["headers"]
     subject = (h["value"] for h in headers if h["name"].lower() == "subject")
@@ -102,7 +103,7 @@ def get_emails_impl(
         timestamp = int(received_since.timestamp())
         query += f" after:{timestamp}"
 
-      emails = []
+      emails: list[EmailMessage] = []
       page_token = None
       label_ids = ['INBOX']
       if unread_only:
@@ -177,72 +178,41 @@ def make_get_emails_tool(credentials: Credentials) -> Callable:
   return get_emails
 
 
-def mark_as_read_impl(
+def update_labels(
     service: GmailService,
     message: EmailMessage,
     star: bool = False,
+    mark_as_read: bool = False,
 ) -> EmailMessage | None:
   try:
-    body = {'removeLabelIds': ['UNREAD']}
+    body = {}
     if star:
       body['addLabelIds'] = ['STARRED']
+    if mark_as_read:
+      body['removeLabelIds'] = ['UNREAD']
     service.users().messages().modify(
         userId='me',
         id=message.id,
         body=body,
     ).execute()
-    print(f'Message with ID: {message.id} marked as read.')
     return message
   except Exception as e:
     print(f'An error occurred: {e}')
     return None
 
 
-def make_ignore_tool(
-    credentials: Credentials,
-    message: EmailMessage,
-    # Horrible hack to make automatic FC work.
-    edited_dict: dict[str, Any],
-) -> Callable:
-  service = get_gmail_service(credentials)
-
-  def ignore() -> None:
-    """Ignores the current message and marks as read."""
-    returned_message = mark_as_read_impl(service, message)
-    if returned_message is not None:
-      edited_dict['ignore'] = returned_message
-
-  return ignore
-
-
-def make_star_tool(
-    credentials: Credentials,
-    message: EmailMessage,
-    edited_dict: dict[str, Any],
-) -> Callable:
-  service = get_gmail_service(credentials)
-
-  def star() -> None:
-    """Stars the current message for the user to look at later."""
-    returned_message = mark_as_read_impl(service, message, star=True)
-    if returned_message is not None:
-      edited_dict['star'] = returned_message
-
-  return star
-
-
 def create_draft(
-    credentials: Credentials,
+    service: GmailService,
     *,
     message: str,
     reply_to: str,
 ) -> None:
   # TODO: get other recipients and send it to them.
-  service = get_gmail_service(credentials)
   obj = EmailMessageBuiltin()
   obj.set_content(message)
   # message['To'] = 'Ignore'
   # message['From'] = 'Ignore'
+  # TODO: fetch subject from original message.
   # message['Subject'] = 'Automated draft'
   encoded = base64.urlsafe_b64encode(obj.as_bytes()).decode()
   body = { 'message': { 'threadId': reply_to, 'raw': encoded} }
@@ -257,13 +227,18 @@ if __name__ == '__main__':
 
     if sys.argv[1] == 'draft':
       create_draft(
-          creds,
+          service,
           message='This is a draft',
           reply_to='197c31c0f7f13a53',
       )
 
     else:
-      mark_as_read_impl(service, sys.argv[1])
+      update_labels(
+          service,
+          EmailMessage(id=sys.argv[1]),
+          star=True,
+          mark_as_read=True,
+      )
 
   else:
     emails = get_emails_impl(service, num_emails=10)
