@@ -1,14 +1,14 @@
 import dataclasses
 import datetime
 import os
-from typing import Any, Callable
+from typing import Any, Callable, no_type_check
 from zoneinfo import ZoneInfo
 
 import auth as auth_lib
 
 from google.oauth2.credentials import Credentials
-from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
+from googleapiclient.discovery import build  # type: ignore
+from googleapiclient.errors import HttpError  # type: ignore
 
 CalendarService = Any
 
@@ -20,6 +20,7 @@ class Attendee:
   response_status: str
 
   @classmethod
+  @no_type_check
   def from_json(cls, data: dict) -> 'Attendee':
     return Attendee(
         email=data.get('email'),
@@ -35,7 +36,7 @@ def _parse_date(date_info: dict) -> str:
     dt_obj = dt.astimezone(london_tz)
     return dt_obj.strftime("%A, %d %B %Y at %I:%M %p")
   else:
-    dt_obj = datetime.date.fromisoformat(date_info['date'])
+    dt_obj = datetime.date.fromisoformat(date_info['date'])  # type: ignore
     return dt_obj.strftime("%A, %d %B %Y")
 
 
@@ -52,6 +53,7 @@ class CalendarEvent:
   attendees: list[Attendee]
 
   @classmethod
+  @no_type_check
   def from_json(cls, data: dict) -> 'CalendarEvent':
 
     attendees_list = []
