@@ -36,29 +36,31 @@ class Agent:
     )
     return response.text
 
-  def run(self) -> None:
+  def run(self, gmail: bool = True, calendar: bool = False) -> None:
     while True:
-      time.sleep(INTERVAL)
       creds = auth_lib.get_credentials()
-      """
-      print('Fetching latest events...')
-      latest_events = calendar_tool.get_events_impl(
-          calendar_tool.get_calendar_service(creds),
-          updated_since=self._last_ckpt,
-      )
-      print(latest_events)
-      """
-      print('Fetching latest emails...')
-      latest_emails = gmail_tool.get_emails_impl(
-          gmail_tool.get_gmail_service(creds),
-          received_since=self._last_ckpt,
-          unread_only=True,
-      )
-      print(latest_emails)
-      self._last_ckpt = datetime.datetime.now(datetime.UTC)
 
-      if latest_emails:
-        gmail_agent.triage(latest_emails)
+      if calendar:
+        print('Fetching latest events...')
+        latest_events = calendar_tool.get_events_impl(
+            calendar_tool.get_calendar_service(creds),
+            updated_since=self._last_ckpt,
+        )
+        print(latest_events)
+
+      if gmail:
+        print('Fetching latest emails...')
+        latest_emails = gmail_tool.get_emails_impl(
+            gmail_tool.get_gmail_service(creds),
+            # received_since=self._last_ckpt,
+            unread_only=True,
+        )
+        self._last_ckpt = datetime.datetime.now(datetime.UTC)
+
+        if latest_emails:
+          gmail_agent.triage(latest_emails)
+
+      time.sleep(INTERVAL)
 
 
 if __name__ == '__main__':
