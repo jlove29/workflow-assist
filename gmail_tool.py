@@ -1,8 +1,11 @@
+import backoff
 import base64
 import dataclasses
 import datetime
 from email.message import EmailMessage as EmailMessageBuiltin
+import httplib2
 import sys
+import requests
 from typing import Any, Callable, no_type_check
 
 import auth as auth_lib
@@ -115,7 +118,17 @@ def get_emails_impl(
             'labelIds': label_ids,
             'pageToken': page_token,
         }
-        results = service.users().messages().list(**list_params).execute()
+
+        @backoff.on_exception(
+            backoff.expo,
+            (httplib2.error.ServerNotFoundError,),
+            max_tries=5,
+            on_giveup=lambda e: print(f'Too many failures: {e}')
+        )
+        def call_with_backoff():
+          return service.users().messages().list(**list_params).execute()
+
+        results = call_with_backoff()
         messages_info = results.get("messages", [])
 
         if not messages_info:
