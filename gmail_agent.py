@@ -117,7 +117,7 @@ def triage(emails: list[gmail_tool.EmailMessage]):
       gmail_tool.create_draft(
           service=service,
           message=response,
-          reply_to=email.id,
+          reply_to=email.thread_id if email.thread_id else email.id,
       )
     else:
       print(f'Failed to triage email: {email.subject}')
