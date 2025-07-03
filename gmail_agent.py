@@ -61,13 +61,15 @@ def make_respond_tool(
 
   def respond() -> None:
     """Marks an email as needing a response."""
+    prompt = (
+        f'Draft a response to this email:\n\n{message.to_string()}\n\n'
+        'ONLY include the resulting email in your response. Do not give '
+        'multiple options or explain your response.'
+    )
+    prompt += prompts.user_prefs(prompts.TRIAGE_MD)
     response = client.models.generate_content(
         model='gemini-2.5-flash',
-        contents=(
-            f'Draft a response to this email:\n\n{message.to_string()}\n\n'
-            'ONLY include the resulting email in your response. Do not give '
-            'multiple options or explain your response.'
-        )
+        contents=prompt,
     )
     holding_dict[RESPOND] = response.text
 
