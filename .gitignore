@@ -216,3 +216,6 @@ token.json
 # Configuration
 GEMINI.md
 TRIAGE.md
+
+# Storage
+logs/*

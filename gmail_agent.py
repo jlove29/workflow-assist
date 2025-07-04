@@ -3,6 +3,7 @@ from typing import Any, Callable
 
 import auth as auth_lib
 import gmail_tool
+import log
 import prompts
 
 from google import genai
@@ -110,19 +111,20 @@ def triage(emails: list[gmail_tool.EmailMessage]):
         config=config,
     )
     if IGNORE in holding_dict:
-      print(f'Marked email {email.subject} as read.')
+      log.log(f'Marked email {email.subject} as read.')
     elif STAR in holding_dict:
-      print(f'Starred email {email.subject}.')
+      log.log(f'Starred email {email.subject}.')
     elif RESPOND in holding_dict:
       response = holding_dict['respond']
-      print(f"Drafted response to email:\n{response}")
+      first_line = response.split('\n')[0]
+      log.log(f'Drafted response to email: {first_line}')
       gmail_tool.create_draft(
           service=service,
           message=response,
           reply_to=email.thread_id if email.thread_id else email.id,
       )
     else:
-      print(f'Failed to triage email: {email.subject}')
+      log.log(f'Failed to triage email: {email.subject}')
       continue
 
     gmail_tool.update_labels(service, email, mark_as_read=True)

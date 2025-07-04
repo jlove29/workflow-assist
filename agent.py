@@ -7,6 +7,7 @@ import auth as auth_lib
 import calendar_tool
 import gmail_agent
 import gmail_tool
+import log
 import prompts
 
 from google import genai
@@ -41,15 +42,14 @@ class Agent:
       creds = auth_lib.get_credentials()
 
       if calendar:
-        print('Fetching latest events...')
+        log.log('Fetching latest events...')
         latest_events = calendar_tool.get_events_impl(
             calendar_tool.get_calendar_service(creds),
             updated_since=self._last_ckpt,
         )
-        print(latest_events)
 
       if gmail:
-        print('Fetching latest emails...')
+        log.log('Fetching latest emails...')
         latest_emails = gmail_tool.get_emails_impl(
             gmail_tool.get_gmail_service(creds),
             # received_since=self._last_ckpt,
